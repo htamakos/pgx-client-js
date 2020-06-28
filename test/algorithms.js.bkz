@@ -2146,12 +2146,14 @@ describe('algorithms', function () {
 });
 
 after(function() {
-  localSession.destroy().then(function(result) {
-    p = null;
-    vf = null;
-    v1 = null;
-    v2 = null;
-    e1 = null;
-    localSession = null;
-  });
+  if(localSession){
+    localSession.destroy().then(function(result) {
+      p = null;
+      vf = null;
+      v1 = null;
+      v2 = null;
+      e1 = null;
+      localSession = null;
+    });
+  }
 });

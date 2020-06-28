@@ -41,8 +41,12 @@ module.exports = class Graph {
    * @param {module:classes/graph} graph - graph
    */
   constructor(result, session) {
+    this.id = result.id;
     this.name = result.graphName;
+    this.vertexTables = result.vertexTables;
+    this.edgeTables = result.edgeTables;
     this.transient = result.transient;
+    this.partitioned = result.partitioned;
     this.numVertices = result.metaData.numVertices;
     this.numEdges = result.metaData.numEdges;
     this.vertexIdType = result.metaData.vertexIdType;
@@ -149,15 +153,23 @@ module.exports = class Graph {
     let self = this;
     let filterJson = {
       'type': 'set',
+      'elementType': type,
+      'graphId': self.id,
+      'fromFilter': true,
       'filter': {
         'type': type,
         'filterExpression': 'true',
-        'binaryOperation': false
+        'resultSetFilter': false,
+        'collectionFilter': false,
       },
+      'fromComponent': false,
+      'componentStorageName': null,
+      'componentId': 0,
+      'isScalarCollection': false,
       'collectionName': null
     };
-    return core.postCollectionFromFilter(self, filterJson).then(function(collectionName) {
-      return core.getCollectionProxy(self, collectionName);
+    return core.postCollectionFromFilter(self, filterJson).then(function(collection) {
+      return core.postCollectionProxy(self, collection);
     });
   }
 
@@ -167,11 +179,12 @@ module.exports = class Graph {
       return collectionProxy.getElements(self.session, proxy.proxyId, start, size);
     }).then(function(elements) {
       let collection = [];
-      for(let i=0; i<elements.length; i++) {
+      let elementsItems = elements['items']
+      for(let i=0; i<elementsItems.length; i++) {
         if (type === 'VERTEX') {
-          collection.push(new vertex(elements[i], self));
+          collection.push(new vertex(elementsItems[i], self));
         } else if (type === 'EDGE') {
-          collection.push(new edge(elements[i], self));
+          collection.push(new edge(elementsItems[i], self));
         }
       }
       return collection;
@@ -232,7 +245,9 @@ module.exports = class Graph {
    * @instance
    */
   get fresh() {
-    return core.isFresh(this);
+    return core.isFresh(this).then(function(result){
+      return result.entity
+    });
   }
 
   /**
@@ -250,11 +265,13 @@ module.exports = class Graph {
   transpose(options) {
     let self = this;
     let defaultOptions = {
-      'vertexPropNames': null,
-      'edgePropNames': null,
+      'vertexPropIds': null,
+      'edgePropIds': null,
       'inPlace': false,
       'newGraphName': null,
-      'edgeLabelMapping': null
+      'edgeLabelMapping': null,
+      'noTrivialVertices': true,
+      'edgeStrategy': null
     };
     let finalOptions = common.getOptions(defaultOptions, options);
     return core.postCreateTransposedGraph(self, finalOptions).then(function(result) {
@@ -279,8 +296,9 @@ module.exports = class Graph {
   undirect(options) {
     let self = this;
     let defaultOptions = {
-      'vertexPropNames': null,
-      'edgePropNames': null,
+      'vertexPropIds': null,
+      'edgePropIds': null,
+      'edgeLabelMapping': null,
       'inPlace': false,
       'newGraphName': null,
       'noTrivialVertices': false,
@@ -416,8 +434,10 @@ module.exports = class Graph {
   queryPgql(query) {
     let self = this;
     let queryJson = {
+      'semantic': null,
       'pgqlQuery': query,
-      'graphName': self.name
+      'graphId': self.id,
+      'schemaStrictnessMode': true
     };
     return core.queryPgql(self, queryJson).then(function(result) {
       return resultSetService.getResultSetElements(self, result.resultSetId).then(function(elements) {
@@ -918,11 +938,12 @@ module.exports = class Graph {
    * @param {Array.string} [edgePropNames] - edge properties
    * @returns {module:classes/graph} the resulting graph
    */
-  publish(nodePropNames, edgePropNames) {
+  publish(vertexPropIds, edgePropIds) {
     let self = this;
     let graphJson = {
-      'vertexPropNames': nodePropNames === undefined ? property.NONE : nodePropNames,
-      'edgePropNames': edgePropNames === undefined ? property.NONE : edgePropNames
+      'vertexPropIds': vertexPropIds === undefined ? property.NONE : vertexPropIds,
+      'edgePropIds': edgePropIds === undefined ? property.NONE : edgePropIds ,
+      'withSnapshots': true,
     };
     return core.postPublishGraph(self, graphJson).then(function(result) {
       return self;

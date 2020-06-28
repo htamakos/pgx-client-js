@@ -9,6 +9,7 @@ let localSession = null;
 
 before(function() {
   p = pgx.connect(common.baseUrl, common.options).then(function(session) {
+    console.log(localSession);
     localSession = session;
     return session.readGraphWithProperties(common.graphJson);
   }).then(function(graph) {
@@ -37,8 +38,10 @@ describe('allPaths', function () {
 });
 
 after(function() {
-  localSession.destroy().then(function(result) {
-    p = null;
-    localSession = null;
-  });
+  if(localSession){
+    localSession.destroy().then(function(result) {
+      p = null;
+      localSession = null;
+    });
+  }
 });

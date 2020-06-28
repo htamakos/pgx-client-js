@@ -11,16 +11,15 @@ let localGraph = null;
 before(function() {
   p = pgx.connect(common.baseUrl, common.options).then(function(session) {
     localSession = session;
-    return session.readGraphWithProperties(common.graphEdgeLabelJson);
+    return session.readGraphWithProperties(common.graphJson);
   });
 });
 
 describe('graph', function () {
   it('transpose(options) renaming edge labels should return a graph', function() {
       return p.then(function(graph) {
+        localGraph = graph;
         let transposeStrategy = {
-          'vertexProperties': null,
-          'edgePropNames': null,
           'inPlace': false,
           'edgeLabelMapping': {
             'labelEdge0': 'renamedEdge0',
@@ -51,8 +50,13 @@ describe('graph', function () {
 });
 
 after(function() {
-  localSession.destroy().then(function(result) {
-    p = null;
-    localSession = null;
-  });
+  if(localGraph){
+    localGraph.destroy().catch(function(e){
+    });
+  }
+
+  if(localSession){
+    localSession.destroy().catch(function(e){
+    });
+  }
 });

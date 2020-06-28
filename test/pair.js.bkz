@@ -30,8 +30,10 @@ describe('pair', function () {
 });
 
 after(function() {
-  localSession.destroy().then(function(result) {
-    p = null;
-    localSession = null;
-  });
+  if(localSession){
+    localSession.destroy().then(function(result) {
+      p = null;
+      localSession = null;
+    });
+  }
 });

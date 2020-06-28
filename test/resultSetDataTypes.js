@@ -6,6 +6,7 @@ const pgx = common.pgx;
 
 let p = null;
 let localSession = null;
+let localGraph = null;
 let prop1;
 let prop2;
 let prop3;
@@ -20,6 +21,7 @@ before(function() {
 describe('resultSet data types', function () {
   it('queryPgql(local_date, time, timestamp) should have 0 values', function() {
     return p.then(function(graph) {
+      localGraph = graph;
       return graph.createVertexProperty('local_date');
     }).then(function(property) {
       prop1 = property;
@@ -61,8 +63,13 @@ describe('resultSet data types', function () {
 });
 
 after(function() {
-  localSession.destroy().then(function(result) {
-    p = null;
-    localSession = null;
-  });
+  if(localGraph){
+    localGraph.destroy().catch(function(e){
+    });
+  }
+
+  if(localSession){
+    localSession.destroy().catch(function(e){
+    });
+  }
 });

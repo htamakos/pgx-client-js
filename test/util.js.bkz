@@ -6,12 +6,14 @@ const pgx = common.pgx;
 
 let p = null;
 let localSession = null;
+let localGraph = null;
 
 before(function() {
   p = pgx.connect(common.baseUrl, common.options).then(function(session) {
     localSession = session;
     return session.readGraphWithProperties(common.graphJson);
   }).then(function(graph) {
+    localGraph = graph;
     return graph.session.analyst.scc(graph);
   })
 });
@@ -33,8 +35,13 @@ describe('util', function () {
 });
 
 after(function() {
-  localSession.destroy().then(function(result) {
-    p = null;
-    localSession = null;
-  });
+  if(localGraph){
+    localGraph.destroy().catch(function(e){
+    });
+  }
+
+  if(localSession){
+    localSession.destroy().catch(function(e){
+    });
+  }
 });
